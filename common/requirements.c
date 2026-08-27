@@ -3384,18 +3384,13 @@ is_tiledef_conn_req_active(const struct civ_map *nmap,
 {
   IS_REQ_ACTIVE_VARIANT_ASSERT(VUT_TILEDEF_CONNECTED);
 
-  if (!is_server()) {
-    /* Client does not know about access areas */
-    return TRI_MAYBE;
-  }
-
   if (req->range == REQ_RANGE_CITY) {
     if (context->city == nullptr
-        || context->city->server.aarea == nullptr) {
+        || context->city->aarea == nullptr) {
       return TRI_MAYBE;
     }
 
-    if (BV_ISSET(context->city->server.aarea->tiledefs,
+    if (BV_ISSET(context->city->aarea->tiledefs,
                  tiledef_index(req->source.value.tiledef))) {
       return TRI_YES;
     }
@@ -6168,30 +6163,31 @@ is_citystatus_req_active(const struct civ_map *nmap,
     return TRI_MAYBE;
 
   case CITYS_CAPITALCONNECTED:
-    if (!is_server()) {
-      /* Client has no idea. */
-      return TRI_MAYBE;
-    }
-
     switch (req->range) {
     case REQ_RANGE_CITY:
-      return BOOL_TO_TRISTATE(context->city->server.aarea != nullptr
-                              && context->city->server.aarea->capital);
+      if (context->city->aarea == nullptr) {
+        return TRI_MAYBE;
+      }
+      return BOOL_TO_TRISTATE(context->city->aarea->capital);
     case REQ_RANGE_TRADE_ROUTE:
       {
         enum fc_tristate ret;
 
-        if (context->city->server.aarea != nullptr
-            && context->city->server.aarea->capital) {
+        if (context->city->aarea != nullptr
+            && context->city->aarea->capital) {
           return TRI_YES;
         }
 
-        ret = TRI_NO;
+        if (context->city->aarea == nullptr) {
+          ret = TRI_MAYBE;
+        } else {
+          ret = TRI_NO;
+        }
         trade_partners_iterate(context->city, trade_partner) {
-          if (trade_partner == nullptr) {
+          if (trade_partner == nullptr
+              || trade_partner->aarea == nullptr) {
             ret = TRI_MAYBE;
-          } else if (trade_partner->server.aarea != nullptr
-                     && trade_partner->server.aarea->capital) {
+          } else if (trade_partner->aarea->capital) {
             return TRI_YES;
           }
         } trade_partners_iterate_end;
