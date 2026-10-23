@@ -1040,5 +1040,8 @@ flags          = "River", "UnrestrictedInfra"
 ;                        to satisfy tiledef requirements.
 ; extras               = List of extras that the tile must have
 ;                        to satisfy tiledef requirements.
+; known                = Whether the target player must know the tile or not
+; owned                = Whether the tile must be within borders of
+;                        the target player or not
 ;
 ; */ <-- avoid gettext warnings

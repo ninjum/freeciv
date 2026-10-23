@@ -1160,7 +1160,7 @@ const char *city_name_get(const struct city *pcity)
 }
 
 /**********************************************************************//**
-  Return the name of the city, embellished for removeable, recyclable flags.
+  Return the name of the city, embellished for removable, recyclable flags.
 **************************************************************************/
 #define POLLUTION_EFT_NEARMAX -95
 const char *city_name_getx(const struct city *pcity)
@@ -1177,17 +1177,13 @@ const char *city_name_getx(const struct city *pcity)
   sz_strlcat(em_city_name, city_name_get(pcity));
 
   if (get_city_bonus(pcity, EFT_AIRLIFT) > 0) {
-    if (!spacer) {
-      sz_strlcat(em_city_name, " ");
-      spacer = TRUE;
-    }
-    sz_strlcat(em_city_name, "🛧"); /* 🛧🛪 (alternatives)*/
+    sz_strlcat(em_city_name, " 🛧"); /* 🛧🛪 (alternatives)*/
+    spacer = TRUE;
   }
 
   if (get_city_bonus(pcity, EFT_POLLU_PROD_PCT) < POLLUTION_EFT_NEARMAX) {
     if (!spacer) {
       sz_strlcat(em_city_name, " ");
-      spacer = TRUE;
     }
     sz_strlcat(em_city_name, "♺"); /* ♺♻♳ (alternatives)*/
   }
@@ -1697,7 +1693,7 @@ bool base_city_celebrating(const struct city *pcity)
 }
 
 /**********************************************************************//**
-cities celebrate only after consecutive happy turns
+  Cities celebrate only after consecutive happy turns
 **************************************************************************/
 bool city_celebrating(const struct city *pcity)
 {
@@ -3017,10 +3013,10 @@ int city_airlift_max(const struct city *pcity)
 }
 
 /**********************************************************************//**
-   Set food, trade and shields production in a city.
+  Set food, trade and shields production in a city.
 
-   This initializes the prod[] and waste[] arrays.  It assumes that
-   the bonus[] and citizen_base[] arrays are alread built.
+  This initializes the prod[] and waste[] arrays. It assumes that
+  the bonus[] and citizen_base[] arrays are already built.
 **************************************************************************/
 inline void set_city_production(struct city *pcity)
 {
@@ -3647,6 +3643,11 @@ void destroy_city_virtual(struct city *pcity)
 
   /* Free rally points */
   city_rally_point_clear(pcity);
+
+  if (pcity->aarea != nullptr) {
+    city_list_remove(pcity->aarea->cities, pcity);
+    pcity->aarea = nullptr;
+  }
 
   unit_list_destroy(pcity->units_supported);
   trade_route_list_destroy(pcity->routes);

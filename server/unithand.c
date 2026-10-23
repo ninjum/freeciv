@@ -177,6 +177,8 @@ static bool do_action_activity(struct unit *punit,
 static bool do_action_activity_targeted(struct unit *punit,
                                         const struct action *paction,
                                         struct extra_type **new_target);
+static bool do_scout(struct unit *punit, struct tile *ptile,
+                     const struct action *paction);
 static inline bool
 non_allied_not_listed_at(const struct player *pplayer,
                          const int *list, int n, const struct tile *ptile);
@@ -1138,6 +1140,7 @@ static struct player *need_war_player_hlp(const struct unit *actor,
   case ACTRES_PARADROP_CONQUER:
     /* Target is a tile but a city can block it. */
     fc_assert_action(action_get_target_kind(paction) == ATK_TILE, break);
+
     if (target_tile != nullptr
         && map_is_known_and_seen(target_tile, actor_player, V_MAIN)) {
       /* Seen tile unit savers */
@@ -1209,6 +1212,7 @@ static struct player *need_war_player_hlp(const struct unit *actor,
   case ACTRES_UNIT_MOVE:
   case ACTRES_TELEPORT:
   case ACTRES_TELEPORT_CONQUER:
+  case ACTRES_SCOUT:
   case ACTRES_ENABLER_CHECK:
   case ACTRES_SPY_ESCAPE:
   case ACTRES_NONE:
@@ -4019,6 +4023,10 @@ bool unit_perform_action(struct player *pplayer,
                                        paction->result == ACTRES_TELEPORT_CONQUER,
                                        FALSE, FALSE));
     break;
+  case ACTRES_SCOUT:
+    ACTION_PERFORM_UNIT_TILE(action_type, actor_unit, target_tile,
+                             do_scout(actor_unit, target_tile, paction));
+    break;
   case ACTRES_TRANSFORM_TERRAIN:
     ACTION_PERFORM_UNIT_TILE(action_type, actor_unit, target_tile,
                              do_action_activity(actor_unit, paction));
@@ -4235,7 +4243,6 @@ static bool city_add_unit(struct player *pplayer, struct unit *punit,
 {
   int amount = unit_pop_value(punit);
   const struct unit_type *act_utype;
-  Specialist_type_id spec_id = DEFAULT_SPECIALIST;
   int new_food;
   int savings_pct = city_growth_granary_savings(pcity);
 
@@ -4253,23 +4260,22 @@ static bool city_add_unit(struct player *pplayer, struct unit *punit,
   /* Preserve old food stock, unless granary effect gives us more. */
   pcity->food_stock = MAX(pcity->food_stock, new_food);
 
-  if (is_super_specialist(act_utype->spec_type)) {
+  citizens_update(pcity, unit_nationality(punit));
+
+  if (act_utype->spec_type != nullptr) {
     Specialist_type_id sspec = specialist_index(act_utype->spec_type);
 
     fc_assert_ret_val(pcity->specialists[sspec] < MAX_CITY_SIZE, FALSE);
     pcity->specialists[sspec]++;
+    /* Refresh the city data. */
+    city_refresh(pcity);
   } else {
     fc_assert_ret_val(amount > 0, FALSE);
-    /* Hardly much needed but let it be */
-    spec_id = specialist_index(act_utype->spec_type);
+    /* Make the new people something, otherwise city fails the checks */
+    pcity->specialists[DEFAULT_SPECIALIST] += amount;
+    /* Make the new people do something useful */
+    auto_arrange_workers(pcity);  /* this calls city_refresh(pcity) */
   }
-  /* Make the new people something, otherwise city fails the checks */
-  fc_assert_ret_val(MAX_CITY_SIZE - pcity->specialists[spec_id] >= amount,
-                    FALSE);
-  pcity->specialists[spec_id] += amount;
-  citizens_update(pcity, unit_nationality(punit));
-  /* Refresh the city data. */
-  city_refresh(pcity);
 
   /* Notify the unit owner that the unit successfully joined the city. */
   notify_player(pplayer, city_tile(pcity), E_CITY_BUILD, ftc_server,
@@ -4335,13 +4341,13 @@ static bool city_build(struct player *pplayer, struct unit *punit,
   }
 
   act_utype = unit_type_get(punit);
-  sid = specialist_index(act_utype->spec_type);
   nationality = unit_nationality(punit);
 
   create_city(pplayer, ptile, name, nationality);
   size = act_utype->city_size;
   pcity = tile_city(ptile); /* A callback may destroy or replace it any time */
-  if (nullptr != pcity) {
+  if (nullptr != pcity && nullptr != act_utype->spec_type) {
+    sid = specialist_index(act_utype->spec_type);
     if (is_super_specialist_id(sid) && pcity->specialists[sid] < MAX_CITY_SIZE) {
       pcity->specialists[sid]++;
     }
@@ -6861,6 +6867,34 @@ static bool unit_activity_targeted_internal(struct unit *punit,
 
     return TRUE;
   }
+}
+
+/**********************************************************************//**
+  Perform a scout action.
+
+  Returns TRUE iff action could be done, FALSE if it couldn't. Even if
+  this returns TRUE, unit may have died during the action.
+**************************************************************************/
+static bool do_scout(struct unit *punit, struct tile *ptile,
+                     const struct action *paction)
+{
+  struct player *owner = unit_owner(punit);
+
+  if (punit->server.scout_vision != nullptr
+      && punit->server.scout_vision->tile != ptile) {
+    vision_free(punit->server.scout_vision);
+    punit->server.scout_vision = nullptr;
+  }
+
+  if (punit->server.scout_vision == nullptr) {
+    const v_radius_t radius_sq = V_RADIUS(5, 0, 0);
+
+    punit->server.scout_vision = vision_new(owner, ptile);
+    vision_reveal_tiles(punit->server.scout_vision, TRUE);
+    vision_change_sight(punit->server.scout_vision, radius_sq);
+  }
+
+  return TRUE;
 }
 
 /**********************************************************************//**

@@ -55,6 +55,8 @@ void access_areas_refresh(struct civ_map *nmap, struct player *plr)
     packet.player = player_number(plr);
 
     city_list_iterate(plr->cities, pcity) {
+      struct packet_city_access_area caarea_packet;
+
       if (pcity->aarea == nullptr) {
         struct access_area *aarea = fc_malloc(sizeof(struct access_area));
         struct pf_parameter parameter;
@@ -70,6 +72,7 @@ void access_areas_refresh(struct civ_map *nmap, struct player *plr)
 
         unit_tile_set(access_unit, city_tile(pcity));
         pft_fill_unit_parameter(&parameter, nmap, access_unit);
+        parameter.omniscience = TRUE;
         pfm = pf_map_new(&parameter);
 
         city_list_iterate(plr->cities, pcity2) {
@@ -95,7 +98,7 @@ void access_areas_refresh(struct civ_map *nmap, struct player *plr)
         pf_map_tiles_iterate(pfm, ptile, TRUE) {
           if (ptile != nullptr) {
             tiledef_iterate(td) {
-              if (tile_matches_tiledef(td, ptile)) {
+              if (tile_matches_tiledef(td, ptile, plr)) {
                 int tn = tiledef_number(td);
 
                 BV_SET(aarea->tiledefs, tn);
@@ -112,8 +115,54 @@ void access_areas_refresh(struct civ_map *nmap, struct player *plr)
 
         lsend_packet_access_area(plr->connections, &packet);
       }
+
+      caarea_packet.city = pcity->id;
+      caarea_packet.aarea = pcity->aarea->index;
+
+      lsend_packet_city_access_area(plr->connections, &caarea_packet);
     } city_list_iterate_end;
 
     unit_virtual_destroy(access_unit);
+  }
+}
+
+/*********************************************************************//**
+  Just send existing access area info.
+  @param pconn Connection to send the information for and to
+*************************************************************************/
+void send_access_area_info(struct connection *pconn)
+{
+  if (pconn->playing != nullptr
+      && access_info_access_unit() != nullptr) {
+    struct aarea_list *alist = area_list_for_player(pconn->playing);
+    struct packet_access_area aarea_packet;
+
+    aarea_packet.player = player_number(pconn->playing);
+
+    aarea_list_iterate(alist, aarea) {
+      BV_CLR_ALL(aarea_packet.tiledefs);
+
+      tiledef_iterate(td) {
+        int tn = tiledef_number(td);
+
+        if (BV_ISSET(aarea->tiledefs, tn)) {
+          BV_SET(aarea_packet.tiledefs, tn);
+        }
+      } tiledef_iterate_end;
+
+      aarea_packet.index = aarea->index;
+      aarea_packet.capital = aarea->capital;
+
+      send_packet_access_area(pconn, &aarea_packet);
+    } aarea_list_iterate_end;
+
+    city_list_iterate(pconn->playing->cities, pcity) {
+      struct packet_city_access_area caarea_packet;
+
+      caarea_packet.city = pcity->id;
+      caarea_packet.aarea = pcity->aarea->index;
+
+      send_packet_city_access_area(pconn, &caarea_packet);
+    } city_list_iterate_end;
   }
 }

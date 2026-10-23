@@ -129,7 +129,6 @@ GtkWidget *toplevel_tabs;
 GtkWidget *top_vbox;
 GtkWidget *top_notebook, *bottom_notebook, *right_notebook;
 GtkWidget *map_widget;
-static GtkWidget *bottom_hpaned;
 
 PangoFontDescription *city_names_style = NULL;
 PangoFontDescription *city_productions_style = NULL;
@@ -179,7 +178,6 @@ GtkTextView *main_message_area;
 GtkTextBuffer *message_buffer = NULL;
 static GtkWidget *allied_chat_toggle_button;
 
-static gint timer_id;                               /*       ditto        */
 static GIOChannel *srv_channel;
 static guint srv_id;
 gint cur_x, cur_y;
@@ -254,7 +252,7 @@ static gboolean timer_callback(gpointer data)
     }
   }
 
-  timer_id = g_timeout_add(seconds * 1000, timer_callback, NULL);
+  g_timeout_add(seconds * 1000, timer_callback, NULL);
 
   return FALSE;
 }
@@ -444,33 +442,6 @@ static gboolean key_press_map_canvas(GtkWidget *w, GdkEventKey *ev,
     }
   }
 
-  if (ev->state & GDK_SHIFT_MASK) {
-    bool volchange = FALSE;
-
-    switch (ev->keyval) {
-    case GDK_KEY_KP_Add:
-      gui_options.sound_effects_volume += 10;
-      volchange = TRUE;
-      break;
-
-    case GDK_KEY_KP_Subtract:
-      gui_options.sound_effects_volume -= 10;
-      volchange = TRUE;
-      break;
-
-    default:
-      break;
-    }
-
-    if (volchange) {
-      struct option *poption = optset_option_by_name(client_optset, "sound_effects_volume");
-
-      gui_options.sound_effects_volume = CLIP(0, gui_options.sound_effects_volume, 100);
-      option_changed(poption);
-
-      return TRUE;
-    }
-  }
   if (!(ev->state & ACCL_MOD_KEY)) {
     switch (ev->keyval) {
     case GDK_KEY_KP_Add:
@@ -1031,7 +1002,7 @@ void reset_unit_table(void)
   /* We have to force a redraw of the units.  And we explicitly have
    * to force a redraw of the focus unit, which is normally only
    * redrawn when the focus changes. We also have to force the 'more'
-   * arrow to go away, both by expicitly hiding it and telling it to
+   * arrow to go away, both by explicitly hiding it and telling it to
    * do so (this will be reset immediately afterwards if necessary,
    * but we have to make the *internal* state consistent). */
   gtk_widget_hide(more_arrow_pixmap_button);
@@ -1561,7 +1532,6 @@ static void setup_widgets(void)
   /* *** The message window -- this is a detachable widget *** */
 
   if (GUI_GTK_OPTION(message_chat_location) == GUI_GTK_MSGCHAT_MERGED) {
-    bottom_hpaned = paned;
     right_notebook = bottom_notebook = top_notebook;
   } else {
     GtkWidget *hpaned;
@@ -1585,7 +1555,6 @@ static void setup_widgets(void)
     }
     gtk_container_add(GTK_CONTAINER(vgrid), hpaned);
     g_object_set(hpaned, "margin", 4, NULL);
-    bottom_hpaned = hpaned;
 
     bottom_notebook = gtk_notebook_new();
     gtk_notebook_set_tab_pos(GTK_NOTEBOOK(bottom_notebook), GTK_POS_TOP);
@@ -1900,6 +1869,8 @@ int ui_main(int argc, char **argv)
       return EXIT_FAILURE;
     }
 
+    g_set_prgname("org.freeciv.gtk322");
+
     help_system_init();
 
     dlg_tab_provider_prepare();
@@ -2017,7 +1988,7 @@ int ui_main(int argc, char **argv)
     set_client_state(C_S_DISCONNECTED);
 
     /* Assumes client_state is set */
-    timer_id = g_timeout_add(TIMER_INTERVAL, timer_callback, NULL);
+    g_timeout_add(TIMER_INTERVAL, timer_callback, NULL);
 
     gui_up = TRUE;
     gtk_main();

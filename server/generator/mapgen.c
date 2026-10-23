@@ -3226,7 +3226,7 @@ static struct fair_tile *fair_map_island_new(int size, int startpos_num)
     struct fair_tile *pend;
     int n = ((river_pct * size * MAP_NUM_CARDINAL_DIRS
               * MAP_NUM_CARDINAL_DIRS) / 200);
-    int length_max = 3, length, l;
+    int length_max = 3, l;
     enum direction8 dir;
     int extra_idx;
     int dirs_num;
@@ -3283,7 +3283,11 @@ static struct fair_tile *fair_map_island_new(int size, int startpos_num)
 
       /* Check a river in one direction. */
       pend = nullptr;
-      length = -1;
+
+#if !defined(FREECIV_NDEBUG) || defined(FREECIV_DEBUG)
+      int length = -1;
+#endif
+
       dir = direction8_invalid();
       dirs_num = 0;
       for (j = 0; j < MAP_NUM_VALID_DIRS; j++) {
@@ -3335,7 +3339,10 @@ static struct fair_tile *fair_map_island_new(int size, int startpos_num)
         if (finished && fc_rand(++dirs_num) == 0) {
           dir = MAP_VALID_DIRS[j];
           pend = pftile2;
+
+#if !defined(FREECIV_NDEBUG) || defined(FREECIV_DEBUG)
           length = l;
+#endif
         }
       }
       if (pend == nullptr) {
@@ -3351,7 +3358,11 @@ static struct fair_tile *fair_map_island_new(int size, int startpos_num)
                 length);
       for (;;) {
         BV_SET(pftile->extras, extra_idx);
+
+#if !defined(FREECIV_NDEBUG) || defined(FREECIV_DEBUG)
         length--;
+#endif
+
         if (pftile == pend) {
           fc_assert(length == 0);
           break;
@@ -3400,20 +3411,29 @@ static bool map_generate_fair_islands(void)
   int playermass, islandmass1 , islandmass2, islandmass3;
   int min_island_size = wld.map.server.tinyisles ? 1 : 2;
   int players_per_island = 1;
-  int teams_num = 0, team_players_num = 0, single_players_num = 0;
+  int teams_num = 0, team_players_num = 0;
   int i, iter = CLIP(1, 100000 / map_num_tiles(), 10);
   bool done = FALSE;
 
+#if !defined(FREECIV_NDEBUG) || defined(FREECIV_DEBUG)
+  int single_players_num = 0;
+#endif
+
   teams_iterate(pteam) {
     i = player_list_size(team_members(pteam));
+
     fc_assert(0 < i);
-    if (i == 1) {
-      single_players_num++;
-    } else {
+
+    if (i != 1) {
       teams_num++;
       team_players_num += i;
+#if !defined(FREECIV_NDEBUG) || defined(FREECIV_DEBUG)
+    } else {
+      single_players_num++;
+#endif
     }
   } teams_iterate_end;
+
   fc_assert(team_players_num + single_players_num == player_count());
 
   /* Take in account the 'startpos' setting. */

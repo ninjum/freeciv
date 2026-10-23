@@ -240,6 +240,7 @@ static void popup_diplomacy_dialog(struct treaty *ptreaty, struct player *they,
     /* We have to raise the diplomacy meeting tab as well as the selected
      * meeting. */
     fc_assert_ret(dipl_main != NULL);
+
     gui_dialog_raise(dipl_main->dialog);
     gui_dialog_raise(pdialog->dialog);
 
@@ -731,6 +732,7 @@ static void diplomacy_response(struct gui_dialog *dlg, int response,
   struct Diplomacy_dialog *pdialog = NULL;
 
   fc_assert_ret(data);
+
   pdialog = (struct Diplomacy_dialog *)data;
 
   switch (response) {

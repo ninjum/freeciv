@@ -661,6 +661,14 @@ static gboolean citydlg_keyboard_handler(GtkEventControllerKey *controller,
   return FALSE;
 }
 
+/**********************************************************************//**
+  Information popup destruction requested
+**************************************************************************/
+static void info_popdown_callback(GtkWidget *w, gpointer data)
+{
+  gtk_widget_unparent(w);
+}
+
 /***********************************************************************//**
   Popup info dialog
 ***************************************************************************/
@@ -726,6 +734,9 @@ static gboolean show_info_popup(GtkGestureClick *gesture, int n_press,
   gtk_widget_set_margin_bottom(label, 4);
 
   gtk_popover_set_child(GTK_POPOVER(p), label);
+
+  g_signal_connect(p, "closed",
+                   G_CALLBACK(info_popdown_callback), NULL);
 
   gtk_popover_popup(GTK_POPOVER(p));
 
@@ -2186,7 +2197,9 @@ static void city_dialog_update_building(struct city_dialog *pdialog)
         gtk_list_store_set(store, &iter, 0, pix,
                            1, name, 3, useless,
                            2, (gint)cid_encode(items[item].item), -1);
-        g_object_unref(G_OBJECT(pix));
+        if (pix != NULL) {
+          g_object_unref(G_OBJECT(pix));
+        }
 
         if (are_universals_equal(target, &pcity->production)) {
           cur = actcount;

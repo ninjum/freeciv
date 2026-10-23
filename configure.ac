@@ -420,9 +420,7 @@ AS_IF([test $dev_save_compat != 0],
       [AC_DEFINE([FREECIV_DEV_SAVE_COMPAT], [1],
                  [Development version save game compatibility])
        AC_DEFINE([FREECIV_DEV_SAVE_COMPAT_3_4], [1],
-                 [Development version save game compatibility - 3.4 development])
-       AC_DEFINE([FREECIV_DEV_SAVE_COMPAT_3_3], [1],
-                 [Development version save game compatibility - 3.3 development])])
+                 [Development version save game compatibility - 3.4 development])])
 
 AC_ARG_ENABLE([patient-connect],
   AS_HELP_STRING([--enable-patient-connect=yes/no],
@@ -704,7 +702,7 @@ dnl Detect flags to be used in configure tests that should fail on warnings
 WERROR_C_TEST_FLAGS=""
 WERROR_CXX_TEST_FLAGS=""
 FC_C_FLAGS([-Werror -Wall], [], [WERROR_C_TEST_FLAGS])
-FC_CXX_FLAGS([-Werror -Wall], [], [WERROR_CXX_TEST_FLAGS])
+FC_CXX_FLAGS([-Werror -Wall -Wno-c++20-extensions], [], [WERROR_CXX_TEST_FLAGS])
 
 FC_C99_VARIADIC_MACROS
 FC_C99_VARIABLE_ARRAYS

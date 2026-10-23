@@ -69,6 +69,7 @@ meson setup .. \
   -Dclients='gtk3.22','qt','sdl2','gtk4','stub' \
   -Dfcmp='gtk3','qt','cli','gtk4' \
   -Dqtver=qt6 \
+  -Daudio=sdl2 \
   || (let meson_exit_status=$? \
       && echo "meson.log:" \
       && cat meson-logs/meson-log.txt \
@@ -107,13 +108,9 @@ echo "Freeciv server autogame successful!"
 GETTEXT_PREFIX="$(brew --prefix gettext)"
 READLINE_PREFIX="$(brew --prefix readline)"
 ICU4C_PREFIX="$(brew --prefix icu4c)"
-SDL2_PREFIX="$(brew --prefix sdl2)"
-SDL2_MIXER_PREFIX="$(brew --prefix sdl2_mixer)"
-SDL2_TTF_PREFIX="$(brew --prefix sdl2_ttf)"
-SDL2_IMAGE_PREFIX="$(brew --prefix sdl2_image)"
 
-export CPPFLAGS="-I${GETTEXT_PREFIX}/include -I${READLINE_PREFIX}/include -I${SDL2_PREFIX}/include -I${SDL2_PREFIX}/include/SDL2 -I${SDL2_MIXER_PREFIX}/include -I${SDL2_TTF_PREFIX}/include -I${SDL2_IMAGE_PREFIX}/include"
-export LDFLAGS="-L${GETTEXT_PREFIX}/lib -L${ICU4C_PREFIX}/lib -L${READLINE_PREFIX}/lib -L${SDL2_PREFIX}/lib -L${SDL2_MIXER_PREFIX}/lib -L${SDL2_TTF_PREFIX}/lib -L${SDL2_IMAGE_PREFIX}/lib"
+export CPPFLAGS="-I${GETTEXT_PREFIX}/include -I${READLINE_PREFIX}/include"
+export LDFLAGS="-L${GETTEXT_PREFIX}/lib -L${ICU4C_PREFIX}/lib -L${READLINE_PREFIX}/lib"
 export PKG_CONFIG_PATH="${ICU4C_PREFIX}/lib/pkgconfig"
 
 mkdir build
@@ -121,8 +118,9 @@ cd build
 meson setup .. \
   -Dqtver=qt6x \
   -Ddebug=true \
+  -Daudio=sdl3 \
   -Dtools=ruledit,manual,ruleup \
-  -Dclients=gtk3.22,sdl2,gtk4,qt,stub,gtk4x \
+  -Dclients=gtk3.22,sdl3,gtk4,qt,stub,gtk4x \
   -Dfcmp=gtk3,gtk4,qt,cli \
   -Dprefix=${HOME}/freeciv/mac-meson \
   || (let meson_exit_status=$? \
@@ -150,6 +148,7 @@ CXX="clang++" \
 meson setup .. \
  -Ddebug=true \
  -Dqtver=qt6 \
+ -Daudio=sdl2 \
  -Dclients=gtk3.22,gtk4,qt,sdl2,stub \
  -Dfcmp=gtk3,gtk4,qt,cli \
  -Dfcdb=sqlite3,mariadb,odbc \

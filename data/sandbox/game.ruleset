@@ -650,7 +650,7 @@ goods_selection = "Leaving"
 ;                           This value is not used at all in case of bidirectional routes.
 ; onetime_pct             = Onetime bonuses when trade route gets established. Default is 100%
 ; select_priority         = Available good with highest select_priority get selected for
-;                           the traderoute, random among the same select_pririty.
+;                           the traderoute, random among the same select_priority.
 ; replace_priority        = Trade routes get replaced by higher priority goods, or higher
 ;                           trade value when priority is the same.
 ; flags
@@ -754,7 +754,7 @@ flags            = "Depletes"
 [aarea]
 ; Unit type to use to determine access areas. Access area is the area this unit
 ; can access (move to)
-access_unit = ""
+access_unit = "Caravan"
 
 
 ; /* <-- avoid gettext warnings

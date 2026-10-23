@@ -26,7 +26,7 @@
 [spec]
 
 ; Format and options of this spec file:
-options = "+Freeciv-spec-3.3-Devel-2023.Apr.05"
+options = "+Freeciv-spec-3.4-Devel-2026.Oct.03"
 
 [info]
 
@@ -69,14 +69,14 @@ tiles = { "row", "column", "tag"
 ;[VC]
  0,  5, "extra.ruins_mg:0"
 ;[HH]
- 1,  5, "city.european_occupied_0"
- 1,  5, "city.classical_occupied_0"
- 1,  5, "city.asian_occupied_0"
- 1,  5, "city.tropical_occupied_0"
- 1,  5, "city.celtic_occupied_0"
- 1,  5, "city.babylonian_occupied_0"
- 1,  5, "city.industrial_occupied_0"
- 1,  5, "city.electricage_occupied_0"
- 1,  5, "city.modern_occupied_0"
- 1,  5, "city.postmodern_occupied_0"
+ 1,  5, "city.european_occupied_0:0"
+ 1,  5, "city.classical_occupied_0:0"
+ 1,  5, "city.asian_occupied_0:0"
+ 1,  5, "city.tropical_occupied_0:0"
+ 1,  5, "city.celtic_occupied_0:0"
+ 1,  5, "city.babylonian_occupied_0:0"
+ 1,  5, "city.industrial_occupied_0:0"
+ 1,  5, "city.electricage_occupied_0:0"
+ 1,  5, "city.modern_occupied_0:0"
+ 1,  5, "city.postmodern_occupied_0:0"
 }

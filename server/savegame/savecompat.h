@@ -37,8 +37,6 @@ enum tile_special_type {
   /* internal values not saved */
   S_LAST,
 
-  S_OLD_FORTRESS,
-  S_OLD_AIRBASE,
   S_OLD_ROAD,
   S_OLD_RAILROAD,
   S_OLD_RIVER
@@ -212,8 +210,6 @@ int char2num(char ch);
 enum tile_special_type special_by_rule_name(const char *name);
 const char *special_rule_name(enum tile_special_type type);
 struct extra_type *special_extra_get(int spe);
-
-struct extra_type *resource_by_identifier(const char identifier);
 
 enum ai_level ai_level_convert(int old_level);
 enum barbarian_type barb_type_convert(int old_type);

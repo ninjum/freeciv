@@ -26,7 +26,6 @@ extern "C" {
 #include "fc_interface.h"
 #include "fc_types.h"
 #include "map_types.h"
-#include "terrain.h"            /* enum tile_special_type */
 #include "unittype.h"
 #include "vision.h"
 
@@ -245,6 +244,7 @@ struct unit {
       int ord_city;
 
       struct vision *vision;
+      struct vision *scout_vision;
       time_t action_timestamp;
       int action_turn;
       struct unit_move_data *moving;

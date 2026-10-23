@@ -308,18 +308,7 @@ static void gui_dialog_destroyed(struct gui_dialog *dlg, int response,
 **************************************************************************/
 static void gui_dialog_destroy_handler(GtkWidget *w, struct gui_dialog *dlg)
 {
-  if (dlg->type == GUI_DIALOG_TAB) {
-    GtkWidget *notebook = dlg->v.tab.notebook;
-    gulong handler_id = dlg->v.tab.handler_id;
-
-    g_signal_handler_disconnect(notebook, handler_id);
-  }
-
   g_object_unref(dlg->gui_button);
-
-  if (*(dlg->source)) {
-    *(dlg->source) = NULL;
-  }
 
   dialog_list = g_list_remove(dialog_list, dlg);
 
@@ -884,7 +873,10 @@ void gui_dialog_destroy(struct gui_dialog *dlg)
 {
   switch (dlg->type) {
   case GUI_DIALOG_WINDOW:
-    gtk_window_destroy(GTK_WINDOW(dlg->v.window));
+    if (dlg->v.window != NULL) {
+      gtk_window_destroy(GTK_WINDOW(dlg->v.window));
+      dlg->v.window = NULL;
+    }
     break;
   case GUI_DIALOG_TAB:
     {
@@ -892,8 +884,14 @@ void gui_dialog_destroy(struct gui_dialog *dlg)
 
       n = gtk_notebook_page_num(GTK_NOTEBOOK(dlg->v.tab.notebook), dlg->grid);
       gtk_notebook_remove_page(GTK_NOTEBOOK(dlg->v.tab.notebook), n);
+      g_signal_handler_disconnect(GTK_NOTEBOOK(dlg->v.tab.notebook),
+                                  dlg->v.tab.handler_id);
     }
     break;
+  }
+
+  if (*(dlg->source)) {
+    *(dlg->source) = NULL;
   }
 }
 

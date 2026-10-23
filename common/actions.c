@@ -782,6 +782,11 @@ static void hard_code_actions(void)
                       TRUE, TRUE,
                       MAK_TELEPORT, 1,
                       ACTION_DISTANCE_MAX, FALSE);
+  actions[ACTION_SCOUT] =
+      unit_action_new(ACTION_SCOUT, ACTRES_SCOUT,
+                      TRUE, TRUE,
+                      MAK_TELEPORT, 1,
+                      ACTION_DISTANCE_MAX, FALSE);
   actions[ACTION_GAIN_VETERANCY] =
       unit_action_new(ACTION_GAIN_VETERANCY, ACTRES_ENABLER_CHECK,
                       TRUE, FALSE,
@@ -2574,6 +2579,7 @@ action_actor_utype_hard_reqs_ok_full(const struct action *paction,
   case ACTRES_UNIT_MOVE:
   case ACTRES_TELEPORT:
   case ACTRES_TELEPORT_CONQUER:
+  case ACTRES_SCOUT:
   case ACTRES_ENABLER_CHECK:
   case ACTRES_NONE:
     /* No hard unit type requirements. */
@@ -2774,6 +2780,7 @@ action_hard_reqs_actor(const struct civ_map *nmap,
   case ACTRES_SPY_ATTACK:
   case ACTRES_HUT_ENTER:
   case ACTRES_HUT_FRIGHTEN:
+  case ACTRES_SCOUT:
   case ACTRES_ENABLER_CHECK:
   case ACTRES_NONE:
     /* No hard unit requirements. */
@@ -4345,6 +4352,9 @@ action_prob(const struct civ_map *nmap,
   case ACTRES_UNIT_MOVE:
   case ACTRES_TELEPORT:
   case ACTRES_TELEPORT_CONQUER:
+    chance = ACTPROB_CERTAIN;
+    break;
+  case ACTRES_SCOUT:
     chance = ACTPROB_CERTAIN;
     break;
     /* Not UI action, so chance is meaningless */
@@ -6368,6 +6378,9 @@ const char *action_ui_name_default(int act)
   case ACTION_SPY_ESCAPE:
     /* TRANS: _Escape To Nearest City (100% chance of success). */
     return N_("%sEscape To Nearest City%s");
+  case ACTION_SCOUT:
+    /* TRANS: _Scout (100% chance of success). */
+    return N_("%sScout%s");
   case ACTION_USER_ACTION1:
     /* TRANS: _User Action 1 (100% chance of success). */
     return N_("%sUser Action 1%s");
@@ -6530,6 +6543,7 @@ const char *action_min_range_ruleset_var_name(int act)
   case ACTION_UNIT_MOVE2:
   case ACTION_UNIT_MOVE3:
   case ACTION_SPY_ESCAPE:
+  case ACTION_SCOUT:
   case ACTION_GAIN_VETERANCY:
   case ACTION_ESCAPE:
   case ACTION_CIVIL_WAR:
@@ -6748,6 +6762,8 @@ const char *action_max_range_ruleset_var_name(int act)
     return "teleport_enter_max_range";
   case ACTION_TELEPORT_ENTER_CONQUER:
     return "teleport_enter_conquer_max_range";
+  case ACTION_SCOUT:
+    return "scout_max_range";
   case ACTION_USER_ACTION1:
     return "user_action_1_max_range";
   case ACTION_USER_ACTION2:
@@ -6906,6 +6922,7 @@ const char *action_target_kind_ruleset_var_name(int act)
   case ACTION_TELEPORT_ENTER:
   case ACTION_TELEPORT_ENTER_CONQUER:
   case ACTION_SPY_ESCAPE:
+  case ACTION_SCOUT:
   case ACTION_GAIN_VETERANCY:
   case ACTION_ESCAPE:
   case ACTION_CIVIL_WAR:
@@ -7079,6 +7096,7 @@ const char *action_actor_consuming_always_ruleset_var_name(action_id act)
   case ACTION_TELEPORT_ENTER:
   case ACTION_TELEPORT_ENTER_CONQUER:
   case ACTION_SPY_ESCAPE:
+  case ACTION_SCOUT:
   case ACTION_GAIN_VETERANCY:
   case ACTION_ESCAPE:
   case ACTION_CIVIL_WAR:
@@ -7292,6 +7310,7 @@ const char *action_blocked_by_ruleset_var_name(const struct action *act)
   case ACTION_HUT_FRIGHTEN2:
   case ACTION_HUT_FRIGHTEN3:
   case ACTION_HUT_FRIGHTEN4:
+  case ACTION_SCOUT:
   case ACTION_GAIN_VETERANCY:
   case ACTION_CIVIL_WAR:
   case ACTION_FINISH_UNIT:
@@ -7472,6 +7491,7 @@ action_post_success_forced_ruleset_var_name(const struct action *act)
   case ACTION_TELEPORT_ENTER:
   case ACTION_TELEPORT_ENTER_CONQUER:
   case ACTION_SPY_ESCAPE:
+  case ACTION_SCOUT:
   case ACTION_GAIN_VETERANCY:
   case ACTION_ESCAPE:
   case ACTION_CIVIL_WAR:

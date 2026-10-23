@@ -30,8 +30,9 @@ if test "$1" != "" ; then
 fi
 
 if ! meson setup -Dserver=disabled -Dclients=[] -Dfcmp=[] -Dtools=[] \
-     -Daudio=none "${top_srcdir}" ||
-   ! ninja ; then
+     -Dfcdb=[] -Daudio=none "${top_srcdir}" ||
+   ! ninja tolua
+then
   echo "Tolua build failed!" >&2
   exit 1
 fi

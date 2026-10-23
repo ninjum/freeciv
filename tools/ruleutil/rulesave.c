@@ -354,11 +354,11 @@ static bool save_uclass_vec(struct section_file *sfile,
 }
 
 /**********************************************************************//**
-  Save strvec as ruleset vector of strings
+  Save helptext as ruleset vector of strings
 **************************************************************************/
-static bool save_strvec(struct section_file *sfile,
-                        struct strvec *to_save,
-                        const char *path, const char *entry)
+static bool save_helptext(struct section_file *sfile,
+                          struct strvec *to_save,
+                          const char *path, const char *entry)
 {
   if (to_save != nullptr) {
     int sect_count = strvec_size(to_save);
@@ -369,7 +369,8 @@ static bool save_strvec(struct section_file *sfile,
       sections[i] = strvec_get(to_save, i);
     }
 
-    secfile_insert_str_vec(sfile, sections, sect_count, "%s.%s", path, entry);
+    secfile_insert_str_vec_gt_marking(sfile, sections, sect_count,
+                                      "%s.%s", path, entry);
   }
 
   return TRUE;
@@ -380,7 +381,7 @@ static bool save_strvec(struct section_file *sfile,
 **************************************************************************/
 static bool save_ruleset_file(struct section_file *sfile, const char *filename)
 {
-  return secfile_save(sfile, filename, 0, FZ_PLAIN);
+  return secfile_save(sfile, filename, 0, FZ_PLAIN, TRUE);
 }
 
 /**********************************************************************//**
@@ -472,7 +473,7 @@ static bool save_buildings_ruleset(const char *filename, const char *name)
                                "%s.flags", path);
       }
 
-      save_strvec(sfile, pb->helptext, path, "helptext");
+      save_helptext(sfile, pb->helptext, path, "helptext");
     }
   } improvement_re_active_iterate_end;
 
@@ -693,8 +694,10 @@ static bool save_cities_ruleset(const char *filename, const char *name)
     save_name_translation(sfile, &(s->name), path);
 
     if (strcmp(rule_name_get(&s->name), rule_name_get(&s->abbreviation))) {
-      secfile_insert_str(sfile, rule_name_get(&s->abbreviation),
-                         "%s.short_name", path);
+      struct entry *pentry =
+        secfile_insert_str(sfile, rule_name_get(&s->abbreviation),
+                           "%s.short_name", path);
+      entry_str_set_gt_marking(pentry, TRUE);
     }
 
     save_reqs_vector(sfile, &(s->reqs), path, "reqs");
@@ -704,7 +707,7 @@ static bool save_cities_ruleset(const char *filename, const char *name)
       secfile_insert_str(sfile, s->graphic_alt, "%s.graphic_alt", path);
     }
 
-    save_strvec(sfile, s->helptext, path, "helptext");
+    save_helptext(sfile, s->helptext, path, "helptext");
 
   } specialist_type_iterate_end;
 
@@ -1225,8 +1228,10 @@ static bool save_actions_ruleset(const char *filename, const char *name)
         }
 
         if (strcmp(ui_name, action_ui_name_default(i))) {
-          secfile_insert_str(sfile, ui_name,
-                             "%s.ui_name", path);
+          struct entry *pentry =
+            secfile_insert_str(sfile, ui_name,
+                               "%s.ui_name", path);
+          entry_str_set_gt_marking(pentry, TRUE);
         }
       }
     }
@@ -1311,11 +1316,9 @@ static bool save_game_ruleset(const char *filename, const char *name)
   }
 
   if (game.ruleset_summary != nullptr) {
-    struct entry *mod_entry;
-
-    mod_entry = secfile_insert_str(sfile, game.ruleset_summary,
-                                   "about.summary");
-    entry_str_set_gt_marking(mod_entry, TRUE);
+    struct entry *pentry =
+      secfile_insert_str(sfile, game.ruleset_summary, "about.summary");
+    entry_str_set_gt_marking(pentry, TRUE);
   }
 
   if (game.ruleset_description != nullptr) {
@@ -1641,12 +1644,16 @@ static bool save_game_ruleset(const char *filename, const char *name)
   }
 
   if (strcmp(game.calendar.positive_year_label, RS_DEFAULT_POS_YEAR_LABEL)) {
-    secfile_insert_str(sfile, game.calendar.positive_year_label,
-                       "calendar.positive_label");
+    struct entry *pentry =
+      secfile_insert_str(sfile, game.calendar.positive_year_label,
+                         "calendar.positive_label");
+    entry_str_set_gt_marking(pentry, TRUE);
   }
   if (strcmp(game.calendar.negative_year_label, RS_DEFAULT_NEG_YEAR_LABEL)) {
-    secfile_insert_str(sfile, game.calendar.negative_year_label,
-                       "calendar.negative_label");
+    struct entry *pentry =
+      secfile_insert_str(sfile, game.calendar.negative_year_label,
+                         "calendar.negative_label");
+    entry_str_set_gt_marking(pentry, TRUE);
   }
 
   if (game.plr_bg_color != nullptr) {
@@ -1664,9 +1671,9 @@ static bool save_game_ruleset(const char *filename, const char *name)
       tnames[i] = team_slot_rule_name(team_slot_by_number(i));
     }
 
-    secfile_insert_str_vec(sfile, tnames,
-                           game.server.ruledit.named_teams,
-                           "teams.names");
+    secfile_insert_str_vec_gt_marking(sfile, tnames,
+                                      game.server.ruledit.named_teams,
+                                      "teams.names");
   }
 
   comment_disasters(sfile);
@@ -1706,6 +1713,7 @@ static bool save_game_ruleset(const char *filename, const char *name)
   sect_idx = 0;
   achievements_iterate(pach) {
     char path[512];
+    struct entry *pentry;
 
     fc_snprintf(path, sizeof(path), "achievement_%d", sect_idx++);
 
@@ -1723,9 +1731,13 @@ static bool save_game_ruleset(const char *filename, const char *name)
     save_default_int(sfile, pach->culture,
                      0, path, "culture");
 
-    secfile_insert_str(sfile, pach->first_msg, "%s.first_msg", path);
+    pentry = secfile_insert_str(sfile, pach->first_msg,
+                                "%s.first_msg", path);
+    entry_str_set_gt_marking(pentry, TRUE);
     if (pach->cons_msg != nullptr) {
-      secfile_insert_str(sfile, pach->cons_msg, "%s.cons_msg", path);
+      pentry = secfile_insert_str(sfile, pach->cons_msg,
+                                  "%s.cons_msg", path);
+      entry_str_set_gt_marking(pentry, TRUE);
     }
 
   } achievements_iterate_end;
@@ -1798,7 +1810,7 @@ static bool save_game_ruleset(const char *filename, const char *name)
                              "%s.flags", path);
     }
 
-    save_strvec(sfile, pgood->helptext, path, "helptext");
+    save_helptext(sfile, pgood->helptext, path, "helptext");
   } goods_type_re_active_iterate_end;
 
   {
@@ -1848,7 +1860,7 @@ static bool save_game_ruleset(const char *filename, const char *name)
 
     if (pcounter->helptext != nullptr
         && strvec_size(pcounter->helptext) > 0) {
-      save_strvec(sfile, pcounter->helptext, path, "helptext");
+      save_helptext(sfile, pcounter->helptext, path, "helptext");
     }
   } counters_re_iterate_end;
 
@@ -1979,14 +1991,16 @@ static bool save_governments_ruleset(const char *filename, const char *name)
 
       title = ruler_title_male_untranslated_name(prtitle);
       if (title != nullptr) {
-        secfile_insert_str(sfile, title,
-                           "%s.ruler_male_title", path);
+        struct entry *pentry =
+          secfile_insert_str(sfile, title, "%s.ruler_male_title", path);
+        entry_str_set_gt_marking(pentry, TRUE);
       }
 
       title = ruler_title_female_untranslated_name(prtitle);
       if (title != nullptr) {
-        secfile_insert_str(sfile, title,
-                           "%s.ruler_female_title", path);
+        struct entry *pentry =
+          secfile_insert_str(sfile, title, "%s.ruler_female_title", path);
+        entry_str_set_gt_marking(pentry, TRUE);
       }
     }
 
@@ -2002,7 +2016,7 @@ static bool save_governments_ruleset(const char *filename, const char *name)
                              "%s.flags", path);
     }
 
-    save_strvec(sfile, pg->helptext, path, "helptext");
+    save_helptext(sfile, pg->helptext, path, "helptext");
 
   } governments_re_active_iterate_end;
 
@@ -2028,7 +2042,7 @@ static bool save_governments_ruleset(const char *filename, const char *name)
 
       save_reqs_vector(sfile, &(pmul->reqs), path, "reqs");
 
-      save_strvec(sfile, pmul->helptext, path, "helptext");
+      save_helptext(sfile, pmul->helptext, path, "helptext");
     }
   } multipliers_iterate_end;
 
@@ -2412,6 +2426,7 @@ static bool save_techs_ruleset(const char *filename, const char *name)
   for (i = 0; i < MAX_NUM_USER_TECH_FLAGS; i++) {
     const char *flagname = tech_flag_id_name_cb(i + TECH_USER_1);
     const char *helptxt = tech_flag_helptxt(i + TECH_USER_1);
+    struct entry *pentry;
 
     if (flagname != nullptr) {
       if (!uflags_tech) {
@@ -2419,12 +2434,16 @@ static bool save_techs_ruleset(const char *filename, const char *name)
         uflags_tech = TRUE;
       }
 
-      secfile_insert_str(sfile, flagname, "control.flags%d.name", i);
+      pentry = secfile_insert_str(sfile, flagname,
+                                  "control.flags%d.name", i);
+      entry_str_set_gt_marking(pentry, TRUE);
 
       /* Save the user flag help text even when it is undefined. That makes
        * the formatting code happy. The resulting "" is ignored when the
        * ruleset is loaded. */
-      secfile_insert_str(sfile, helptxt, "control.flags%d.helptxt", i);
+      pentry = secfile_insert_str(sfile, helptxt,
+                                  "control.flags%d.helptxt", i);
+      entry_str_set_gt_marking(pentry, TRUE);
     }
   }
 
@@ -2474,7 +2493,10 @@ static bool save_techs_ruleset(const char *filename, const char *name)
         secfile_insert_str(sfile, pa->graphic_alt, "%s.graphic_alt", path);
       }
       if (pa->bonus_message != nullptr) {
-        secfile_insert_str(sfile, pa->bonus_message, "%s.bonus_message", path);
+        struct entry *pentry =
+          secfile_insert_str(sfile, pa->bonus_message,
+                             "%s.bonus_message", path);
+        entry_str_set_gt_marking(pentry, TRUE);
       }
 
       set_count = 0;
@@ -2492,7 +2514,7 @@ static bool save_techs_ruleset(const char *filename, const char *name)
         secfile_insert_int(sfile, pa->cost, "%s.cost", path);
       }
 
-      save_strvec(sfile, pa->helptext, path, "helptext");
+      save_helptext(sfile, pa->helptext, path, "helptext");
     }
 
   } advance_re_active_iterate_end;
@@ -2518,6 +2540,7 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
   for (i = 0; i < MAX_NUM_USER_TER_FLAGS; i++) {
     const char *flagname = terrain_flag_id_name_cb(i + TER_USER_1);
     const char *helptxt = terrain_flag_helptxt(i + TER_USER_1);
+    struct entry *pentry;
 
     if (flagname != nullptr) {
       if (!uflags_terr) {
@@ -2525,18 +2548,23 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
         uflags_terr = TRUE;
       }
 
-      secfile_insert_str(sfile, flagname, "control.flags%d.name", i);
+      pentry = secfile_insert_str(sfile, flagname,
+                                  "control.flags%d.name", i);
+      entry_str_set_gt_marking(pentry, TRUE);
 
       /* Save the user flag help text even when it is undefined. That makes
        * the formatting code happy. The resulting "" is ignored when the
        * ruleset is loaded. */
-      secfile_insert_str(sfile, helptxt, "control.flags%d.helptxt", i);
+      pentry = secfile_insert_str(sfile, helptxt,
+                                  "control.flags%d.helptxt", i);
+      entry_str_set_gt_marking(pentry, TRUE);
     }
   }
 
   for (i = 0; i < MAX_NUM_USER_EXTRA_FLAGS; i++) {
     const char *flagname = extra_flag_id_name_cb(i + EF_USER_FLAG_1);
     const char *helptxt = extra_flag_helptxt(i + EF_USER_FLAG_1);
+    struct entry *pentry;
 
     if (flagname != nullptr) {
       if (!uflags_extra) {
@@ -2547,13 +2575,16 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
         uflags_extra = TRUE;
       }
 
-      secfile_insert_str(sfile, flagname, "control.extra_flags%d.name", i);
+      pentry = secfile_insert_str(sfile, flagname,
+                                  "control.extra_flags%d.name", i);
+      entry_str_set_gt_marking(pentry, TRUE);
 
       /* Save the user flag help text even when it is undefined. That makes
        * the formatting code happy. The resulting "" is ignored when the
        * ruleset is loaded. */
-      secfile_insert_str(sfile, helptxt,
-                         "control.extra_flags%d.helptxt", i);
+      pentry = secfile_insert_str(sfile, helptxt,
+                                  "control.extra_flags%d.helptxt", i);
+      entry_str_set_gt_marking(pentry, TRUE);
     }
   }
 
@@ -2775,7 +2806,7 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
 
     rgbcolor_save(sfile, pterr->rgb, "%s.color", path);
 
-    save_strvec(sfile, pterr->helptext, path, "helptext");
+    save_helptext(sfile, pterr->helptext, path, "helptext");
 
   } terrain_type_iterate_end;
 
@@ -2807,10 +2838,15 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
     }
   } extra_type_by_cause_iterate_end;
 
-  secfile_insert_str(sfile, terrain_control.gui_type_base0,
-                     "extraui.ui_name_base_fortress");
-  secfile_insert_str(sfile, terrain_control.gui_type_base1,
-                     "extraui.ui_name_base_airbase");
+  {
+    struct entry *pentry =
+      secfile_insert_str(sfile, terrain_control.gui_type_base0,
+                         "extraui.ui_name_base_fortress");
+    entry_str_set_gt_marking(pentry, TRUE);
+    pentry = secfile_insert_str(sfile, terrain_control.gui_type_base1,
+                                "extraui.ui_name_base_airbase");
+    entry_str_set_gt_marking(pentry, TRUE);
+  }
 
   comment_extras(sfile);
 
@@ -2985,7 +3021,7 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
                              "%s.bridged_over", path);
     }
 
-    save_strvec(sfile, pextra->helptext, path, "helptext");
+    save_helptext(sfile, pextra->helptext, path, "helptext");
 
   } extra_type_re_active_iterate_end;
 
@@ -3129,6 +3165,13 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
       secfile_insert_str_vec(sfile, extra_names, set_count,
                              "%s.extras", path);
     }
+
+    if (td->known) {
+      secfile_insert_bool(sfile, td->known, "%s.known", path);
+    }
+    if (td->owned) {
+      secfile_insert_bool(sfile, td->owned, "%s.owned", path);
+    }
   } tiledef_iterate_end;
 
   return save_ruleset_file(sfile, filename);
@@ -3155,8 +3198,8 @@ static bool save_veteran_system(struct section_file *sfile, const char *path,
     vlist_move[i] = vsystem->definitions[i].move_bonus;
   }
 
-  secfile_insert_str_vec(sfile, vlist_name, vsystem->levels,
-                         "%s.veteran_names", path);
+  secfile_insert_str_vec_gt_marking(sfile, vlist_name, vsystem->levels,
+                                    "%s.veteran_names", path);
   secfile_insert_int_vec(sfile, vlist_power, vsystem->levels,
                          "%s.veteran_power_fact", path);
   secfile_insert_int_vec(sfile, vlist_raise, vsystem->levels,
@@ -3224,6 +3267,7 @@ static bool save_units_ruleset(const char *filename, const char *name)
   for (i = 0; i < MAX_NUM_USER_UNIT_FLAGS; i++) {
     const char *flagname = unit_type_flag_id_name_cb(i + UTYF_USER_FLAG_1);
     const char *helptxt = unit_type_flag_helptxt(i + UTYF_USER_FLAG_1);
+    struct entry *pentry;
 
     if (flagname != nullptr) {
       if (!uflags_utype) {
@@ -3231,18 +3275,23 @@ static bool save_units_ruleset(const char *filename, const char *name)
         uflags_utype = TRUE;
       }
 
-      secfile_insert_str(sfile, flagname, "control.flags%d.name", i);
+      pentry = secfile_insert_str(sfile, flagname,
+                                  "control.flags%d.name", i);
+      entry_str_set_gt_marking(pentry, TRUE);
 
       /* Save the user flag help text even when it is undefined. That makes
        * the formatting code happy. The resulting "" is ignored when the
        * ruleset is loaded. */
-      secfile_insert_str(sfile, helptxt, "control.flags%d.helptxt", i);
+      pentry = secfile_insert_str(sfile, helptxt,
+                                  "control.flags%d.helptxt", i);
+      entry_str_set_gt_marking(pentry, TRUE);
     }
   }
 
   for (i = 0; i < MAX_NUM_USER_UCLASS_FLAGS; i++) {
     const char *flagname = unit_class_flag_id_name_cb(i + UCF_USER_FLAG_1);
     const char *helptxt = unit_class_flag_helptxt(i + UCF_USER_FLAG_1);
+    struct entry *pentry;
 
     if (flagname != nullptr) {
       if (!uflags_uclass) {
@@ -3253,13 +3302,16 @@ static bool save_units_ruleset(const char *filename, const char *name)
         uflags_uclass = TRUE;
       }
 
-      secfile_insert_str(sfile, flagname, "control.class_flags%d.name", i);
+      pentry = secfile_insert_str(sfile, flagname,
+                                  "control.class_flags%d.name", i);
+      entry_str_set_gt_marking(pentry, TRUE);
 
       /* Save the user flag help text even when it is undefined. That makes
        * the formatting code happy. The resulting "" is ignored when the
        * ruleset is loaded. */
-      secfile_insert_str(sfile, helptxt,
-                         "control.class_flags%d.helptxt", i);
+      pentry = secfile_insert_str(sfile, helptxt,
+                                  "control.class_flags%d.helptxt", i);
+      entry_str_set_gt_marking(pentry, TRUE);
     }
   }
 
@@ -3298,7 +3350,7 @@ static bool save_units_ruleset(const char *filename, const char *name)
                              "%s.flags", path);
     }
 
-    save_strvec(sfile, puc->helptext, path, "helptext");
+    save_helptext(sfile, puc->helptext, path, "helptext");
 
   } unit_class_re_active_iterate_end;
 
@@ -3348,7 +3400,7 @@ static bool save_units_ruleset(const char *filename, const char *name)
 
       secfile_insert_int(sfile, put->build_cost, "%s.build_cost", path);
       secfile_insert_int(sfile, put->pop_cost, "%s.pop_cost", path);
-      if (DEFAULT_SPECIALIST < 0 || DEFAULT_SPECIALIST != specialist_index(put->spec_type)) {
+      if (DEFAULT_SPECIALIST < 0 || (nullptr != put->spec_type)) {
         secfile_insert_str(sfile, specialist_rule_name(put->spec_type),
                            "%s.specialist", path);
       }
@@ -3438,7 +3490,7 @@ static bool save_units_ruleset(const char *filename, const char *name)
                                "%s.roles", path);
       }
 
-      save_strvec(sfile, put->helptext, path, "helptext");
+      save_helptext(sfile, put->helptext, path, "helptext");
     }
   } unit_type_re_active_iterate_end;
 
@@ -3478,7 +3530,7 @@ static bool save_script_lua(const char *filename, const char *name,
 static bool save_luadata(const char *filename)
 {
   if (game.server.luadata != nullptr) {
-    return secfile_save(game.server.luadata, filename, 0, FZ_PLAIN);
+    return secfile_save(game.server.luadata, filename, 0, FZ_PLAIN, FALSE);
   }
 
   return TRUE;

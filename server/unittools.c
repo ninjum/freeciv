@@ -709,6 +709,13 @@ void finalize_unit_phase_beginning(struct player *pplayer)
     punit->changed_from = punit->activity;
     punit->changed_from_target = punit->activity_target;
     punit->changed_from_count = punit->activity_count;
+
+    if (punit->server.scout_vision != nullptr) {
+      vision_clear_sight(punit->server.scout_vision);
+      vision_free(punit->server.scout_vision);
+      punit->server.scout_vision = nullptr;
+    }
+
     send_unit_info(nullptr, punit);
   } unit_list_iterate_end;
 }
@@ -1836,6 +1843,11 @@ static void server_remove_unit_full(struct unit *punit, bool transported,
     vision_clear_sight(punit->server.vision);
     vision_free(punit->server.vision);
     punit->server.vision = nullptr;
+  }
+  if (punit->server.scout_vision != nullptr) {
+    vision_clear_sight(punit->server.scout_vision);
+    vision_free(punit->server.scout_vision);
+    punit->server.scout_vision = nullptr;
   }
 
   packet.unit_id = punit->id;
@@ -5109,7 +5121,7 @@ bool unit_can_be_retired(struct unit *punit)
 **************************************************************************/
 void random_movements(struct player *pplayer)
 {
-  const struct civ_map *nmap = &(wld.map);
+  struct civ_map *nmap = &(wld.map);
 
   game.server.random_move_time = pplayer;
 
@@ -5136,34 +5148,22 @@ void random_movements(struct player *pplayer)
           struct tile *dest = mapstep(&(wld.map), curtile, dirs[choice]);
 
           if (dest != nullptr) {
-            if (is_action_enabled_unit_on_stack(nmap, ACTION_ATTACK, punit, dest)) {
+            enum gen_action act
+              = select_actres_action_unit_on_stack(nmap, ACTRES_ATTACK, punit, dest);
+
+            if (act != ACTION_NONE) {
               if (unit_perform_action(pplayer, id, tile_index(dest), NO_TARGET,
-                                      "", ACTION_ATTACK, ACT_REQ_RULES)) {
+                                      "", act, ACT_REQ_RULES)) {
                 moved = TRUE;
-                break;
               }
             }
 
             if (!moved) {
-              if (is_action_enabled_unit_on_tile(nmap, ACTION_UNIT_MOVE, punit, dest,
-                                                 nullptr)) {
+              act = select_actres_action_unit_on_tile(nmap, ACTRES_UNIT_MOVE,
+                                                      punit, dest);
+              if (act != ACTION_NONE) {
                 if (unit_perform_action(pplayer, id, tile_index(dest),
-                                        NO_TARGET, "", ACTION_UNIT_MOVE,
-                                        ACT_REQ_RULES)) {
-                  moved = TRUE;
-                }
-              } else if (is_action_enabled_unit_on_tile(nmap, ACTION_UNIT_MOVE2,
-                                                        punit, dest, nullptr)) {
-                if (unit_perform_action(pplayer, id, tile_index(dest),
-                                        NO_TARGET, "", ACTION_UNIT_MOVE2,
-                                        ACT_REQ_RULES)) {
-                  moved = TRUE;
-                }
-              } else if (is_action_enabled_unit_on_tile(nmap, ACTION_UNIT_MOVE3,
-                                                        punit, dest, nullptr)) {
-                if (unit_perform_action(pplayer, id, tile_index(dest),
-                                        NO_TARGET, "", ACTION_UNIT_MOVE3,
-                                        ACT_REQ_RULES)) {
+                                        NO_TARGET, "", act, ACT_REQ_RULES)) {
                   moved = TRUE;
                 }
               }

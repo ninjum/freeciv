@@ -51,7 +51,8 @@ c_cpp_args = [
 cpp_args = [
   '-Wno-deprecated-declarations',
   '-fPIC',
-  '-Wtrailing-whitespace'
+  '-Wtrailing-whitespace',
+  '-Wno-c++20-extensions'
   ]
 
 foreach arg : c_args
@@ -175,12 +176,9 @@ priv_conf_data.set('SIZEOF_INT', c_compiler.sizeof('int'))
 if get_option('debug')
   priv_conf_data.set('FREECIV_DEBUG', 1)
   pub_conf_data.set('FREECIV_DEBUG', 1)
-  add_global_arguments('-Wshadow', language: ['c'])
   if host_system == 'windows'
     # Qt headers have problems with dllimport attributes
     add_global_arguments('-Wno-error=attributes', language : 'cpp')
-  else
-    add_global_arguments('-Wshadow', language: ['cpp'])
   endif
 else
   add_global_arguments('-DQT_NO_DEBUG', language : 'cpp')
@@ -716,13 +714,14 @@ if host_system == 'emscripten'
   zlib_dep = []
   syslua = 'false'
   ems_suffix = 'html'
+  ems_largs = [ '--preload-file', 'data' ]
 
   priv_conf_data.set('ALWAYS_ROOT', 1)
 
   emscripten_use_args = [
      '-s', 'USE_ICU=1',
      '-s', 'USE_ZLIB=1',
-     '-s', 'USE_PTHREADS=1'
+     '-pthread'
     ]
 
   add_global_arguments(
@@ -746,6 +745,7 @@ else
   endif
 
   ems_suffix = []
+  ems_largs = []
 endif
 
 # Set unconditionally, as it was checked as hard requirement
@@ -935,8 +935,8 @@ if get_option('audio') == 'sdl3' or get_option('clients').contains('sdl3')
 endif
 
 if qtver == 'qt6x'
-  qt_minver = '0x060a00'
-  qt_vercheck = '6.10'
+  qt_minver = '0x060b00'
+  qt_vercheck = '6.11'
   qt_modename = 'Qt6x'
   add_global_arguments('-DQT_DISABLE_DEPRECATED_BEFORE=' + qt_minver, language : 'cpp')
   priv_conf_data.set('FC_QT6X_MODE', 1)
@@ -1096,14 +1096,21 @@ if svgflags
   pub_conf_data.set('FREECIV_SVG_FLAGS', 1)
 endif
 
-if cxx_build and cxx_compiler.compiles('''
+if cxx_build
+  if cxx_compiler.has_argument('-Wno-c++20-extensions')
+    accept_cxx_20 = ['-Wno-c++20-extensions']
+  else
+    accept_cxx_20 = []
+  endif
+  if cxx_compiler.compiles('''
 class me {
 void top(); };
 void me::top() { (void) [=, this]() { this->top(); }; };
 ''',
-     name: 'C++20 capture this',
-     args: ['-Werror', '-Wall'])
-  pub_conf_data.set('FREECIV_HAVE_CXX20_CAPTURE_THIS', 1)
+       name: 'C++20 capture this',
+       args: ['-Werror', '-Wall', accept_cxx_20])
+    pub_conf_data.set('FREECIV_HAVE_CXX20_CAPTURE_THIS', 1)
+  endif
 endif
 
 if not meson.is_cross_build()
@@ -1159,6 +1166,8 @@ man_links = [
   'freeciv-mp-cli'
   ]
 
+man_dir = join_paths(get_option('mandir'), 'man6')
+
 foreach manp : man_pages
   man_conf_data = configuration_data()
   man_conf_data.set('HOMEPAGE_URL', '"' + homepage_url + '"')
@@ -1167,7 +1176,15 @@ foreach manp : man_pages
   man_conf_data.set('DATASUBDIR', '"' + datasubdir + '"')
   configure_file(input : 'doc/man/' + manp + '.6.in',
                  output : manp + '.6',
-                 configuration : man_conf_data)
+                 configuration : man_conf_data,
+                 install_dir: man_dir)
+endforeach
+
+foreach manp : man_links
+  install_data(
+    join_paths('doc/man/', manp + '.6'),
+    install_dir : man_dir
+    )
 endforeach
 
 add_global_arguments('-DHAVE_CONFIG_H',
@@ -1320,6 +1337,14 @@ if host_system == 'windows'
   tinycthr_files = files('dependencies/tinycthread/fc_tinycthread.c')
 else
   tinycthr_files = files()
+endif
+
+if host_system == 'emscripten'
+  ems_data = custom_target('datacopy', output: 'data',
+                   command: [sh_exe, files('platforms/emscripten/datacopy.sh')],
+                   depend_files: files('platforms/emscripten/datacopy.sh'))
+else
+  ems_data = []
 endif
 
 if syslua != 'false' and lua_dep_tmp.found()
@@ -3438,20 +3463,6 @@ foreach iconsize : i
                  install_dir : join_paths(get_option('datadir'), 'icons/hicolor', iconsize, 'apps'))
 endforeach
 
-foreach manp : man_pages
-  install_data(
-    join_paths(b_root, manp + '.6'),
-    install_dir : join_paths(get_option('mandir'), 'man6')
-    )
-endforeach
-
-foreach manp : man_links
-  install_data(
-    join_paths('doc/man/', manp + '.6'),
-    install_dir : join_paths(get_option('mandir'), 'man6')
-    )
-endforeach
-
 gtk322_dep = dependency('gtk+-3.0', version : '>= 3.22', required : false)
 gtk4_dep = dependency('gtk4', version : '>= 4.0.0', required : false)
 gtk5_dep = dependency('gtk4', version : '>= 4.14.0', required : false)
@@ -3516,6 +3527,7 @@ executable('freeciv-gtk3.22',
             '-DGDK_VERSION_MAX_ALLOWED=GDK_VERSION_3_22',
             '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_50',
             '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_50'],
+  sources: [verhdr],
   include_directories: client_inc,
   dependencies: [gtk322_dep, net_dep, gettext_dep, mw_extra_dep],
   link_with: client_common,
@@ -3609,6 +3621,7 @@ executable('freeciv-gtk4',
             '-DGDK_VERSION_MAX_ALLOWED=GDK_VERSION_4_0',
             '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_66',
             '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_66'],
+  sources: [verhdr],
   include_directories: client_inc,
   dependencies: [gtk4_dep, net_dep, gettext_dep, mw_extra_dep],
   link_with: client_common,
@@ -3694,6 +3707,7 @@ executable('freeciv-gtk4x',
             '-DGDK_VERSION_MAX_ALLOWED=GDK_VERSION_4_14',
             '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_76',
             '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_76'],
+  sources: [verhdr],
   include_directories: client_inc,
   dependencies: [gtk5_dep, net_dep, gettext_dep, mw_extra_dep],
   link_with: client_common,
@@ -3802,6 +3816,7 @@ executable('freeciv-qt',
   'client/gui-qt/voteinfo_bar.cpp',
   'client/gui-qt/wldlg.cpp',
   mocced_client, clienticon,
+  sources: [verhdr],
   include_directories: [client_inc, include_directories('client/gui-qt')],
   dependencies: [qt_dep, net_dep, gettext_dep, mw_extra_dep],
   override_options: qt_opts,
@@ -3857,6 +3872,7 @@ install_data(
   'data/themes/gui-qt/icons/resize.png',
   'data/themes/gui-qt/icons/sentry.png',
   'data/themes/gui-qt/icons/set_homecity.png',
+  'data/themes/gui-qt/icons/smiley.png',
   'data/themes/gui-qt/icons/transform.png',
   'data/themes/gui-qt/icons/units.png',
   'data/themes/gui-qt/icons/unload.png',
@@ -3992,8 +4008,8 @@ if host_system != 'emscripten'
     sdl2_gfx_cargs = '-DSDL2_GFX_FROM_TREE'
   endif
 
-  sdl2_image_dep = dependency('SDL2_image', required: false)
-  sdl2_ttf_dep = dependency('SDL2_ttf', required: false)
+  sdl2_image_dep = dependency('SDL2_image')
+  sdl2_ttf_dep = dependency('SDL2_ttf')
 endif
 
 executable('freeciv-sdl2',
@@ -4048,11 +4064,13 @@ executable('freeciv-sdl2',
   sdl2_gfx_src,
   clienticon,
   c_args: sdl2_gfx_cargs,
+  sources: [verhdr, ems_data],
   include_directories: [client_inc, sdl2_gfx_inc ],
   dependencies: [sdl2main_dep, audio_dep,
                  sdl2_image_dep, sdl2_gfx_dep, sdl2_ttf_dep,
                  net_dep, gettext_dep, mw_extra_dep],
   link_with: client_common,
+  link_args: ems_largs,
   name_suffix: ems_suffix,
   install: true,
   win_subsystem: 'windows'
@@ -4124,8 +4142,8 @@ sdl3_ttf_dep = []
 if host_system != 'emscripten'
   sdl3_gfx_inc = include_directories('dependencies')
 
-  sdl3_image_dep = dependency('sdl3-image', required: false)
-  sdl3_ttf_dep = dependency('sdl3-ttf', required: false)
+  sdl3_image_dep = dependency('sdl3-image')
+  sdl3_ttf_dep = dependency('sdl3-ttf')
 endif
 
 executable('freeciv-sdl3',
@@ -4179,11 +4197,13 @@ executable('freeciv-sdl3',
   'client/gui-sdl3/wldlg.c',
   'client/gui-sdl3/SDL3_gfx/SDL3_rotozoom.c',
   clienticon,
+  sources: [verhdr, ems_data],
   include_directories: [client_inc, sdl3_gfx_inc ],
   dependencies: [sdl3main_dep, audio_dep,
                  sdl3_image_dep, sdl3_gfx_dep, sdl3_ttf_dep,
                  net_dep, gettext_dep, mw_extra_dep],
   link_with: client_common,
+  link_args: ems_largs,
   name_suffix: ems_suffix,
   install: true,
   win_subsystem: 'windows'
@@ -4281,6 +4301,7 @@ executable('freeciv-stub',
   'client/gui-stub/voteinfo_bar.c',
   'client/gui-stub/wldlg.c',
   clienticon,
+  sources: [verhdr],
   include_directories: client_inc,
   dependencies: [audio_dep, net_dep, gettext_dep, mw_extra_dep],
   link_with: client_common,

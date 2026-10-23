@@ -4546,6 +4546,9 @@ void handle_ruleset_tiledef(const struct packet_ruleset_tiledef *p)
       extra_type_list_append(td->extras, pextra);
     }
   } extra_type_iterate_end;
+
+  td->known = p->known;
+  td->owned = p->owned;
 }
 
 /************************************************************************//**
@@ -5871,10 +5874,41 @@ void handle_access_area(const struct packet_access_area *packet)
 
   aarea = fc_malloc(sizeof(struct access_area));
 
-  aarea->cities = nullptr;
+  aarea->cities = city_list_new();
   aarea->index = packet->index;
   aarea->capital = packet->capital;
   aarea->tiledefs = packet->tiledefs;
 
   aarea_list_append(alist, aarea);
+}
+
+/**********************************************************************//**
+  Handle city access area packet.
+**************************************************************************/
+void handle_city_access_area(const struct packet_city_access_area *packet)
+{
+  struct city *pcity = game_city_by_number(packet->city);
+  struct player *plr;
+  struct aarea_list *alist;
+
+  if (pcity == nullptr) {
+    log_warn("handle_city_access_area() received illegal city");
+    return;
+  }
+
+  plr = city_owner(pcity);
+
+  /* Currently we support only packets about our own cities. */
+  fc_assert(plr == client_player());
+
+  alist = area_list_for_player(plr);
+  aarea_list_iterate(alist, aarea) {
+    if (aarea->index == packet->aarea) {
+      fc_assert(pcity->aarea == nullptr);
+
+      pcity->aarea = aarea;
+      city_list_append(aarea->cities, pcity);
+      break;
+    }
+  } aarea_list_iterate_end;
 }

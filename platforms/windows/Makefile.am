@@ -28,6 +28,7 @@ dist_noinst_DATA = \
 		installer_msys2/freeciv-ruledit.cmd		\
 		installer_msys2/Freeciv.url			\
 		installer_msys2/Makefile.meson			\
+		installer_msys2/msys2_env_install.bat		\
 		installer_cross/create-freeciv-gtk-qt-nsi.sh	\
 		installer_cross/create-freeciv-sdl-nsi.sh	\
 		installer_cross/create-freeciv-ruledit-nsi.sh	\
@@ -42,6 +43,7 @@ dist_noinst_DATA = \
 		installer_cross/freeciv-qt.cmd			\
 		installer_cross/freeciv-mp-qt.cmd		\
 		installer_cross/freeciv-sdl2.cmd		\
+		installer_cross/freeciv-sdl3.cmd		\
 		installer_cross/freeciv-ruledit.cmd		\
 		installer_cross/licenses/header.txt		\
 		installer_cross/helpers/installer-helper-gtk3.cmd \

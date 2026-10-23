@@ -1133,7 +1133,10 @@ bool transfer_city(struct player *ptaker, struct city *pcity,
   city_rally_point_clear(pcity);
 
   /* Clear pointer to old owner's access areas */
-  pcity->aarea = nullptr;
+  if (pcity->aarea != nullptr) {
+    city_list_remove(pcity->aarea->cities, pcity);
+    pcity->aarea = nullptr;
+  }
 
   /* Activate AI control of the new owner. */
   CALL_PLR_AI_FUNC(city_got, ptaker, ptaker, pcity);
@@ -1939,7 +1942,7 @@ void remove_city(struct city *pcity)
     }
   } conn_list_iterate_end;
 
-  if (old_vision != NULL) {
+  if (old_vision != nullptr) {
     vision_clear_sight(old_vision);
     vision_free(old_vision);
   }
@@ -2189,7 +2192,7 @@ static void package_dumb_city(struct player *pplayer, struct tile *ptile,
   packet->id = pdcity->identity;
   packet->owner = player_number(vision_site_owner(pdcity));
 
-  if (pdcity->original != NULL) {
+  if (pdcity->original != nullptr) {
     packet->original = player_number(pdcity->original);
   } else {
     packet->original = MAX_NUM_PLAYER_SLOTS;

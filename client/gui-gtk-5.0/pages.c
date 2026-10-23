@@ -70,7 +70,6 @@ static GtkWidget *scenario_version;
 static GtkListStore *load_store, *scenario_store, *meta_store, *lan_store;
 
 static GtkListStore *server_playerlist_store;
-static GtkWidget *server_playerlist_view;
 
 static GtkTreeSelection *load_selection, *scenario_selection;
 static GtkTreeSelection *meta_selection, *lan_selection;
@@ -90,7 +89,6 @@ static struct server_scan_timer_data lan_scan = { NULL, 0 };
 
 static GtkWidget *statusbar, *statusbar_frame;
 static GQueue *statusbar_queue;
-static guint statusbar_timer = 0;
 
 static GtkWidget *ruleset_combo;
 
@@ -962,9 +960,9 @@ static GtkWidget *save_dialog_new(const char *title, const char *savelabel,
 /****************************************************************************
                                  NETWORK PAGE
 ****************************************************************************/
-static GtkWidget *network_login_label, *network_login;
-static GtkWidget *network_host_label, *network_host;
-static GtkWidget *network_port_label, *network_port;
+static GtkWidget *network_login;
+static GtkWidget *network_host;
+static GtkWidget *network_port;
 static GtkWidget *network_password_label, *network_password;
 static GtkWidget *network_confirm_password_label, *network_confirm_password;
 
@@ -1189,7 +1187,7 @@ GtkWidget *create_statusbar(void)
   gtk_frame_set_child(GTK_FRAME(statusbar_frame), statusbar);
 
   statusbar_queue = g_queue_new();
-  statusbar_timer = g_timeout_add(2000, update_network_statusbar, NULL);
+  g_timeout_add(2000, update_network_statusbar, NULL);
 
   return statusbar_frame;
 }
@@ -1719,7 +1717,6 @@ GtkWidget *create_network_page(void)
                        "xalign", 0.0,
                        "yalign", 0.5,
                        NULL);
-  network_host_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 0, 1, 1);
 
   network_port = gtk_entry_new();
@@ -1734,7 +1731,6 @@ GtkWidget *create_network_page(void)
                        "xalign", 0.0,
                        "yalign", 0.5,
                        NULL);
-  network_port_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 1, 1, 1);
 
   network_login = gtk_entry_new();
@@ -1751,7 +1747,6 @@ GtkWidget *create_network_page(void)
                        "yalign", 0.5,
                        NULL);
   gtk_widget_set_margin_top(label, 10);
-  network_login_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 3, 1, 1);
 
   network_password = gtk_entry_new();
@@ -1805,7 +1800,6 @@ GtkWidget *create_network_page(void)
   add_treeview_column(view, _("Type"), G_TYPE_STRING, 1);
   add_treeview_column(view, _("Host"), G_TYPE_STRING, 2);
   add_treeview_column(view, _("Nation"), G_TYPE_STRING, 3);
-  server_playerlist_view = view;
 
   sw = gtk_scrolled_window_new();
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
@@ -3997,8 +3991,9 @@ void real_set_client_page(enum client_pages new_page)
     refresh_chat_buttons();
     center_on_something();
     mapview_thaw();
-    add_idle_callback(main_message_area_resize, NULL);
-    add_idle_callback(animation_idle_cb, NULL);
+    /* Force a resize "just in case" */
+    /* this is probably a no-op most of the time */
+    main_message_area_resize(NULL);
     break;
   case PAGE_NETWORK:
     update_network_lists();

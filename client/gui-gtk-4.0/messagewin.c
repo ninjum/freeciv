@@ -403,24 +403,13 @@ static void meswin_dialog_init(struct meswin_dialog *pdialog)
 }
 
 /************************************************************************//**
-  Closes a message window dialog.
-****************************************************************************/
-static void meswin_dialog_free(struct meswin_dialog *pdialog)
-{
-  fc_assert_ret(NULL != pdialog);
-
-  gui_dialog_destroy(pdialog->shell);
-  fc_assert(NULL == pdialog->shell);
-
-  memset(pdialog, 0, sizeof(*pdialog));
-}
-
-/************************************************************************//**
   Popup the dialog inside the main-window, and optionally raise it.
 ****************************************************************************/
 void meswin_dialog_popup(bool raise)
 {
-  if (NULL == meswin.shell) {
+  if (meswin.shell == NULL
+      || (meswin.shell->type == GUI_DIALOG_WINDOW
+          && meswin.shell->v.window == NULL)) {
     meswin_dialog_init(&meswin);
   }
 
@@ -431,22 +420,13 @@ void meswin_dialog_popup(bool raise)
 }
 
 /************************************************************************//**
-  Closes the message window dialog.
-****************************************************************************/
-void meswin_dialog_popdown(void)
-{
-  if (NULL != meswin.shell) {
-    meswin_dialog_free(&meswin);
-    fc_assert(NULL == meswin.shell);
-  }
-}
-
-/************************************************************************//**
   Return TRUE iff the message window is open.
 ****************************************************************************/
 bool meswin_dialog_is_open(void)
 {
-  return (NULL != meswin.shell);
+  return meswin.shell != NULL
+    && (meswin.shell->type != GUI_DIALOG_WINDOW
+        || meswin.shell->v.window != NULL);
 }
 
 /************************************************************************//**

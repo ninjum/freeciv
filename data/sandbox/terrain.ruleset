@@ -2471,9 +2471,17 @@ flags          = "River", "JumpFrom", "JumpTo"
 ;                        to satisfy tiledef requirements.
 ; extras               = List of extras that the tile must have
 ;                        to satisfy tiledef requirements.
+; known                = Whether the target player must know the tile or not
+; owned                = Whether the tile must be within borders of
+;                        the target player or not
 ;
 ; */ <-- avoid gettext warnings
 
 [tiledef_bridge]
 name   = _("Bridge")
 extras = "River", "Road"
+
+[tiledef_coal_mine]
+name   = _("Coal Mine")
+extras = "Coal", "Mine"
+known  = TRUE

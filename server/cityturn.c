@@ -3755,6 +3755,7 @@ static void update_city_activity(struct city *pcity)
   struct government *gov;
   bool is_happy;
   bool is_celebrating;
+  bool celebration_change = FALSE;
 
   if (!pcity) {
     return;
@@ -3800,12 +3801,14 @@ static void update_city_activity(struct city *pcity)
         notify_player(pplayer, city_tile(pcity), E_CITY_LOVE, ftc_server,
                       _("Celebrations in your honor in %s."),
                       city_link(pcity));
+        celebration_change = TRUE;
       }
     } else {
       if (pcity->rapture != 0) {
         notify_player(pplayer, city_tile(pcity), E_CITY_NORMAL, ftc_server,
                       _("Celebrations canceled in %s."),
                       city_link(pcity));
+        celebration_change = TRUE;
       }
 
       /* Update city's celebrating counters */
@@ -3833,6 +3836,12 @@ static void update_city_activity(struct city *pcity)
           return;
         }
       }
+    }
+
+    /* Refresh city again, after happiness calculations.
+     * This makes celebration to affect output on the first turn it happens. */
+    if (celebration_change && city_refresh(pcity)) {
+      auto_arrange_workers(pcity);
     }
 
     /* City population updated here, after the rapture stuff above. --Jing */
@@ -4002,7 +4011,7 @@ static bool disband_city(struct city *pcity)
     }
   }
 
-  punit = city_create_unit(pcity, utype, NULL);
+  punit = city_create_unit(pcity, utype, nullptr);
 
   /* "unit_built" script handler may have destroyed city. If so, we
    * assume something sensible happened to its units, and that the
@@ -4022,7 +4031,7 @@ static bool disband_city(struct city *pcity)
                     city_tile_link(pcity), utype_name_translation(utype));
     }
 
-    script_server_signal_emit("city_destroyed", pcity, pcity->owner, NULL);
+    script_server_signal_emit("city_destroyed", pcity, pcity->owner, nullptr);
 
     if (!city_exist(saved_id)) {
       /* Already removed during the script */
